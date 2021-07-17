@@ -6,21 +6,3 @@
 #
 click==8.0.1
     # via -r requirements/requirements.in
-colored==1.4.2
-    # via gooey
-gooey==1.0.8.1
-    # via -r requirements/requirements.in
-numpy==1.21.0
-    # via wxpython
-pillow==8.3.1
-    # via
-    #   gooey
-    #   wxpython
-psutil==5.8.0
-    # via gooey
-pygtrie==2.4.2
-    # via gooey
-six==1.16.0
-    # via wxpython
-wxpython==4.1.1
-    # via gooey
