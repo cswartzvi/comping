@@ -56,18 +56,18 @@ def get_comping_short_help(obj: Any) -> str:
     return ""
 
 
-def get_comping_long_help(self) -> str:
+def get_comping_long_help(obj: Any) -> str:
     """Returns the long help associated with process or action object. Defaults to
     the docstring of the wrapped object, if available; otherwise a null string."""
     try:
-        text = self.obj.__comping__.long_help
+        text = obj.__comping__.long_help
         if text:
             return text
     except AttributeError:
         pass
 
     try:
-        return self.obj.__doc__
+        return obj.__doc__
     except AttributeError:
         pass
 
