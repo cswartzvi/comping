@@ -12,7 +12,7 @@ backcall==0.2.0
     # via ipython
 backports.entry-points-selectable==1.1.0
     # via virtualenv
-black==21.6b0
+black==21.7b0
     # via -r requirements/requirements-dev.in
 cfgv==3.3.0
     # via pre-commit
@@ -96,11 +96,12 @@ six==1.16.0
     # via virtualenv
 toml==0.10.2
     # via
-    #   black
     #   mypy
     #   pre-commit
     #   pytest
     #   pytest-cov
+tomli==1.0.4
+    # via black
 traitlets==5.0.5
     # via
     #   ipython
