@@ -96,7 +96,7 @@ class ActionProcressParameter:
         pass  # TODO: check that default (if defined) is compatible with type_type
 
 
-class CommandGroup:
+class Application:
 
     _skip_parameters = {"self", "args", "kwargs"}
 
@@ -106,14 +106,13 @@ class CommandGroup:
         self.process = process
         self.process_params = list(self._extract_params(self.process))
 
-        self.action_params_map: Dict[ActionOrCallable, List[ActionProcressParameter]] = {}
+        self.actions_map: Dict[ActionOrCallable, List[ActionProcressParameter]] = {}
         for action in actions:
-            self.action_params_map[action] = list(self._extract_params(action))
+            self.actions_map[action] = list(self._extract_params(action))
 
     def _extract_params(self, obj: Any) -> Iterator[ActionProcressParameter]:
         if not inspect.isclass(obj):
             return  # non-classes cannot have initialization parameters
-        print(obj)
 
         init = obj.__init__
         signature = inspect.signature(init)
