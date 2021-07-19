@@ -1,0 +1,8 @@
+name: comping
+dependencies:
+  - mypy
+  - flake8
+  - black
+  - pre-commit
+  - pytest
+  - pytest-cov
