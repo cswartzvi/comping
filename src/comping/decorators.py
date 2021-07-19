@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 
 @dataclass
@@ -10,7 +10,10 @@ class CompingDescription:
     long_help: str
 
 
-def description(name: str = "", short: str = "", long: str = ""):
+T = TypeVar('T')
+
+
+def description(name: str = "", short: str = "", long: str = "") -> Callable[[T], T]:
     """A python decorator that applies descriptive attributes to process and action objects.
 
     Args:
@@ -22,10 +25,8 @@ def description(name: str = "", short: str = "", long: str = ""):
             will be used (if available).
     """
 
-    def _wrapper(obj: Any) -> Any:
-        obj.__comping__ = CompingDescription(
-            name=name, short_help=short, long_help=long
-        )
+    def _wrapper(obj: T) -> T:
+        setattr(obj, "__comping__", CompingDescription(name=name, short_help=short, long_help=long))
         return obj
 
     return _wrapper
@@ -72,32 +73,3 @@ def get_comping_long_help(obj: Any) -> str:
         pass
 
     return ""
-
-
-if __name__ == "__main__":
-
-    @description(
-        "person",
-        short="This is decorator short help",
-        long="This is decorator long help",
-    )
-    class Person1:
-        def __init__(self, name: str) -> None:
-            self.name = name
-
-    print(get_comping_name(Person1))
-    print(get_comping_short_help(Person1))
-    print(get_comping_long_help(Person1))
-
-    print()
-
-    @description("person", short="This is decorator short help")
-    class Person2:
-        """This is doc string long help"""
-
-        def __init__(self, name: str) -> None:
-            self.name = name
-
-    print(get_comping_name(Person2))
-    print(get_comping_short_help(Person2))
-    print(get_comping_long_help(Person2))
