@@ -14,6 +14,9 @@ class Person:
     def talk(self, text: str) -> None:
         print(text)
 
+    def gesture(self, motion: str) -> None:
+        print(f"Gesture to {self.name}: {motion}")
+
 
 @description("greet", "Greet a person.")
 class Greet:
@@ -31,7 +34,14 @@ class Greet:
         return True
 
 
-app = Application(Person, [Greet])
+@description("wave", "Gesture to the person.")
+def wave(process: Person) -> bool:
+    """Wave at the person."""
+    process.gesture("Wave")
+    return True
+
+
+app = Application(Person, [Greet, wave])
 
 cli = create_cli("testing", "Initial testing application", [app])
 
