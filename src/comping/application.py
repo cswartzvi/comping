@@ -1,52 +1,24 @@
 import abc
 from dataclasses import dataclass, field
 import inspect
-import sys
-from typing import (
+from comping._typing import (
     Any,
+    Annotated,
     Callable,
     Dict,
     Iterable,
     Iterator,
     List,
     Optional,
+    Protocol,
     Type,
     TypeVar,
     Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+    runtime_checkable,
 )
-
-if sys.version_info >= (3, 9):
-    from typing import (
-        Annotated,
-        Protocol,
-        get_args,
-        get_origin,
-        get_type_hints,
-        runtime_checkable,
-    )
-elif sys.version_info >= (3, 8):
-    from typing import (
-        Protocol,
-    )
-
-    # Annotated not included in typing module before 3.9
-    from typing_extensions import (
-        Annotated,
-        get_args,
-        get_origin,
-        get_type_hints,
-        runtime_checkable,
-    )
-else:
-    # ...Protocol not included in typing module before 3.8
-    from typing_extensions import (
-        Annotated,
-        Protocol,
-        get_args,
-        get_origin,
-        get_type_hints,
-        runtime_checkable,
-    )
 
 T_contra = TypeVar("T_contra", contravariant=True)
 
@@ -87,6 +59,7 @@ class ActionProcressParameter:
         default: The default value of the parameter. If supplied, must conform with
             declared type_hint.
     """
+
     name: str
     annotations: List[str] = field(default_factory=list)  # TODO: comping.Annotation
     type_hint: Optional[Type] = None
@@ -96,7 +69,15 @@ class ActionProcressParameter:
         pass  # TODO: check that default (if defined) is compatible with type_type
 
 
-class Application:
+class ApplicationGroup:
+    """Represents a group within a comping application.
+
+    Args:
+        process: The main process associated with the application group.
+        actions: An iterable of actions that can be performed on the main process.
+    """
+
+    # TODO: expand docstring.
 
     _skip_parameters = {"self", "args", "kwargs"}
 
@@ -111,6 +92,7 @@ class Application:
             self.actions_map[action] = list(self._extract_params(action))
 
     def _extract_params(self, obj: Any) -> Iterator[ActionProcressParameter]:
+        """Extract parameters from a process or process."""
         if not inspect.isclass(obj):
             return  # non-classes cannot have initialization parameters
 
@@ -132,5 +114,5 @@ class Application:
                 name=name,
                 type_hint=type_hint,
                 annotations=annotations,
-                default=parameter.default
+                default=parameter.default,
             )

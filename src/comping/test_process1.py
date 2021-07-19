@@ -1,6 +1,6 @@
 import click
 
-from comping import Application, description
+from comping import ApplicationGroup, description
 from comping.decorators import (
     get_comping_long_help,
     get_comping_name,
@@ -32,7 +32,7 @@ class Greet:
         return True
 
 
-app = Application(Person, [Greet])
+app = ApplicationGroup(Person, [Greet])
 
 
 @click.group()

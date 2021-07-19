@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from typing import Any, Callable, TypeVar
+from comping._typing import Any, Callable, TypeVar
 
 
 @dataclass

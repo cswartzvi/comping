@@ -1,6 +1,6 @@
 from typing_extensions import Annotated
 
-from comping import Application, description
+from comping import ApplicationGroup, description
 from comping.cli import create_cli
 
 
@@ -41,7 +41,7 @@ def wave(process: Person) -> bool:
     return True
 
 
-app = Application(Person, [Greet, wave])
+app = ApplicationGroup(Person, [Greet, wave])
 
 cli = create_cli("testing", "Initial testing application", [app])
 
