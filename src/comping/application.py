@@ -1,6 +1,7 @@
 import abc
 from dataclasses import dataclass, field
 import inspect
+
 from comping._typing import (
     Any,
     Annotated,
@@ -19,6 +20,9 @@ from comping._typing import (
     get_type_hints,
     runtime_checkable,
 )
+from comping.annotations import Help, RestrictiveAnnotation
+
+Annotation = Union[Help, RestrictiveAnnotation]
 
 T_contra = TypeVar("T_contra", contravariant=True)
 
@@ -49,8 +53,7 @@ ActionOrCallable = Union[Type[Action[T]], Callable[[T], bool]]
 
 @dataclass(frozen=True)
 class ActionProcressParameter:
-    """Represnets a parameter from the initializer (__init__) or function call
-    of an action or process object.
+    """Represnets a parameter from the initializer of an action or process object.
 
     Attributes:
         name: Name of the parameter (as it appears in the parameter).
@@ -61,12 +64,9 @@ class ActionProcressParameter:
     """
 
     name: str
-    annotations: List[str] = field(default_factory=list)  # TODO: comping.Annotation
+    annotations: List[Annotation] = field(default_factory=list)
     type_hint: Optional[Type] = None
     default: Any = inspect.Parameter.empty  # None type is a valid default value
-
-    def __post_init__(self):
-        pass  # TODO: check that default (if defined) is compatible with type_type
 
 
 class ApplicationGroup:
@@ -92,7 +92,11 @@ class ApplicationGroup:
             self.actions_map[action] = list(self._extract_params(action))
 
     def _extract_params(self, obj: Any) -> Iterator[ActionProcressParameter]:
-        """Extract parameters from a process or process."""
+        """Yields extracted initialization parameters from a process or action.
+
+        Args:
+            obj: Represents any (potential) action or process.
+        """
         if not inspect.isclass(obj):
             return  # non-classes cannot have initialization parameters
 
@@ -104,11 +108,49 @@ class ApplicationGroup:
             if name in self._skip_parameters:
                 continue
 
+            default = parameter.default
             type_hint = type_hints.get(name, None)
+            type_args = get_args(type_hint)
+            type_origin = get_origin(type_hint)
+
             annotations = []
-            if get_origin(type_hint) is Annotated:
-                # Note: According to PEP 560 annotated must have at least two arguments.
-                type_hint, *annotations = get_args(type_hint)
+            if type_origin is Annotated:
+                # According to PEP 563 Annotated must have at least two arguments.
+                type_hint, *annotations = type_args
+                if len(set(annotations)) != len(annotations):
+                    raise ValueError(
+                        f"Duplicate annotations are not allowed '{parameter}' on '{obj}'"
+                    )
+                for annotation in annotations:
+                    if not isinstance(annotation, get_args(Annotation)):
+                        raise ValueError(
+                            f"Unknown annotation type '{parameter}' on '{obj}'"
+                        )
+            elif type_origin is Union:
+                # Currently, comping does not accept Union type hints with the major
+                # expection of Union[T, NoneType] which is an aliased as Optional[T].
+                # In this case if a parameter default was specified it must be None.
+                if len(type_args) == 2 and type_args[1] is type(None):  # noqa: E721
+                    type_hint = type_args[0]
+                    if default != inspect.Parameter.empty and default is not None:
+                        raise ValueError(
+                            "Parameters declared as Optional must have default "
+                            f"value of None: '{parameter}' on '{obj}'."
+                        )
+                else:
+                    raise ValueError(
+                        f"Union type hints are not allowed: '{parameter}' on '{obj}'"
+                    )
+
+            if (
+                type_hint is not None and
+                parameter.default != inspect.Parameter.empty and
+                not isinstance(default, type_hint)
+            ):
+                raise ValueError(
+                    "Parameter defaults must be an instance of the declared "
+                    f"type hint: '{parameter}' on '{obj}'"
+                )
 
             yield ActionProcressParameter(
                 name=name,

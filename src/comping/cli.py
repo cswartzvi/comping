@@ -4,6 +4,7 @@ from inspect import Parameter
 import click
 
 from comping._typing import (
+    Any,
     Callable,
     Generic,
     Iterable,
@@ -60,17 +61,20 @@ def _add_parameters(obj: Callable, parameter: ActionProcressParameter) -> Callab
     Returns:
         Callable: A click command or group with updated parameters.
     """
+    click_type = _get_click_type(parameter)
     if parameter.default == Parameter.empty:
         obj = click.argument(
-            parameter.name
+            parameter.name,  #  TODO: Move to a function
+            type=click_type
         )(obj)
     else:
         help = ""
         if parameter.annotations:
-            help = parameter.annotations[0]
+            help = parameter.annotations[0].help  #  TODO: Move to a function
         obj = click.option(
-            f"--{parameter.name}",
+            f"--{parameter.name}",  #  TODO: Move to a function
             help=help,
+            type=click_type,
             default=parameter.default
         )(obj)
     return obj
@@ -91,7 +95,7 @@ def _create_click_sub_group(parent: click.Group, app: ApplicationGroup) -> None:
         # TODO: parameter checking
         ctx.obj = app.process(**kwargs)
 
-    # Adds @click.option(...) and @click.argument(...)
+    # Adds @click.option(...) and/or @click.argument(...)
     for parameter in app.process_params:
         sub_group = _add_parameters(sub_group, parameter)
 
@@ -133,7 +137,7 @@ def _create_click_command(
         instance = action(**kwargs)
         instance(process)
 
-    # Adds @click.option(...) and @click.argument(...)
+    # Adds @click.option(...) and/or @click.argument(...)
     for parameter in parameters:
         command = _add_parameters(command, parameter)
 
@@ -143,3 +147,17 @@ def _create_click_command(
         short_help=get_comping_short_help(action),
         help=get_comping_long_help(action),
     )(command)
+
+
+def _get_click_type(parameter: ActionProcressParameter) -> Any:
+    type_hint = parameter.type_hint
+    if type_hint == str:
+        return click.STRING
+    elif type_hint == int:
+        return click.INT
+    elif type_hint == float:
+        return click.FLOAT
+    elif type_hint == bool:
+        return click.BOOL
+    else:
+        return click.STRING

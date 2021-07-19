@@ -1,6 +1,7 @@
 from typing_extensions import Annotated
 
 from comping import ApplicationGroup, description
+from comping.annotations import Help
 from comping.cli import create_cli
 
 
@@ -23,7 +24,7 @@ class Greet:
     """Generate a greeting using a specified PHRASE."""
 
     def __init__(
-        self, phrase: str, punctuation: Annotated[str, "Optional punctuation."] = "."
+        self, phrase: str, punctuation: Annotated[str, Help(help="Optional punctuation.")] = "."
     ) -> None:
         self.phrase = phrase
         self.punctuation = punctuation
