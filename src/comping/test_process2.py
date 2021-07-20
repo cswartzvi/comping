@@ -1,7 +1,9 @@
+import pathlib
+from typing import Optional
 from typing_extensions import Annotated
 
 from comping import ApplicationGroup, description
-from comping.annotations import Help
+from comping.annotations import Help, Name, File, Directory
 from comping.cli import create_cli
 
 
@@ -24,10 +26,16 @@ class Greet:
     """Generate a greeting using a specified PHRASE."""
 
     def __init__(
-        self, phrase: str, punctuation: Annotated[str, Help(help="Optional punctuation.")] = "."
+        self,
+        phrase: str,
+        directory: Annotated[pathlib.Path, Name("DIR"), Directory(exists=True)] = None,
+        punctuation: str = "!"
     ) -> None:
         self.phrase = phrase
         self.punctuation = punctuation
+        self.directory = directory
+        self.directory.mkdir(exist_ok=True, parents=True)
+        print(type(self.directory))
 
     def __call__(self, process: Person) -> bool:
         text = f"{self.phrase.title()}, {process.name.title()}{self.punctuation}"
