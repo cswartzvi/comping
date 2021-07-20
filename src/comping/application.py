@@ -1,5 +1,4 @@
 import abc
-from dataclasses import dataclass, field
 import inspect
 
 from comping._typing import (
@@ -10,7 +9,6 @@ from comping._typing import (
     Iterable,
     Iterator,
     List,
-    Optional,
     Protocol,
     Type,
     TypeVar,
@@ -20,9 +18,8 @@ from comping._typing import (
     get_type_hints,
     runtime_checkable,
 )
-from comping.annotations import Help, RestrictiveAnnotation
-
-Annotation = Union[Help, RestrictiveAnnotation]
+from comping.annotations import is_annotation, is_valid_type_hint
+from comping.parameters import ActionProcressParameter
 
 T_contra = TypeVar("T_contra", contravariant=True)
 
@@ -49,24 +46,6 @@ class Action(Protocol[T_contra]):
 # 2. Functions with call signatures similar to the Action protocol
 T = TypeVar("T")
 ActionOrCallable = Union[Type[Action[T]], Callable[[T], bool]]
-
-
-@dataclass(frozen=True)
-class ActionProcressParameter:
-    """Represnets a parameter from the initializer of an action or process object.
-
-    Attributes:
-        name: Name of the parameter (as it appears in the parameter).
-        type_hint: Declared type hint of the parameter.
-        params: An iterable of comping annotated parameters.
-        default: The default value of the parameter. If supplied, must conform with
-            declared type_hint.
-    """
-
-    name: str
-    annotations: List[Annotation] = field(default_factory=list)
-    type_hint: Optional[Type] = None
-    default: Any = inspect.Parameter.empty  # None type is a valid default value
 
 
 class ApplicationGroup:
@@ -117,30 +96,31 @@ class ApplicationGroup:
             if type_origin is Annotated:
                 # According to PEP 563 Annotated must have at least two arguments.
                 type_hint, *annotations = type_args
-                if len(set(annotations)) != len(annotations):
-                    raise ValueError(
-                        f"Duplicate annotations are not allowed '{parameter}' on '{obj}'"
-                    )
                 for annotation in annotations:
-                    if not isinstance(annotation, get_args(Annotation)):
+                    if not is_annotation(annotation):
                         raise ValueError(
                             f"Unknown annotation type '{parameter}' on '{obj}'"
+                        )
+                    if not is_valid_type_hint(type_hint, annotation):
+                        raise ValueError(
+                            f"Invalid type hint and annotation '{parameter}' on '{obj}'"
                         )
             elif type_origin is Union:
                 # Currently, comping does not accept Union type hints with the major
                 # expection of Union[T, NoneType] which is an aliased as Optional[T].
                 # In this case if a parameter default was specified it must be None.
                 if len(type_args) == 2 and type_args[1] is type(None):  # noqa: E721
-                    type_hint = type_args[0]
                     if default != inspect.Parameter.empty and default is not None:
                         raise ValueError(
                             "Parameters declared as Optional must have default "
                             f"value of None: '{parameter}' on '{obj}'."
                         )
+                    type_hint = type_args[0]
                 else:
                     raise ValueError(
                         f"Union type hints are not allowed: '{parameter}' on '{obj}'"
                     )
+            # TODO: screen for iterables
 
             if (
                 type_hint is not None and

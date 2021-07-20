@@ -1,16 +1,19 @@
 from dataclasses import dataclass, field
 from inspect import Parameter
+import inspect
 
 import click
 
 from comping._typing import (
     Any,
     Callable,
+    Dict,
     Generic,
     Iterable,
     List,
     TypeVar,
 )
+from comping.annotations import ParameterType, PriorityAnnotation, StandardAnnotation
 from comping.application import (
     ActionOrCallable,
     ActionProcressParameter,
@@ -61,23 +64,36 @@ def _add_parameters(obj: Callable, parameter: ActionProcressParameter) -> Callab
     Returns:
         Callable: A click command or group with updated parameters.
     """
-    click_type = _get_click_type(parameter)
+    kwargs: Dict[str, Any] = {"type": parameter.type_hint}  # TODO: handle iterable types
+
     if parameter.default == Parameter.empty:
-        obj = click.argument(
-            parameter.name,  #  TODO: Move to a function
-            type=click_type
-        )(obj)
+        args = [parameter.name]
+
+        param_type = ParameterType.ARGUMENT
     else:
-        help = ""
-        if parameter.annotations:
-            help = parameter.annotations[0].help  #  TODO: Move to a function
-        obj = click.option(
-            f"--{parameter.name}",  #  TODO: Move to a function
-            help=help,
-            type=click_type,
-            default=parameter.default
-        )(obj)
-    return obj
+        args = [f"--{parameter.name}"]
+        param_type = ParameterType.OPTION
+        if parameter.default != inspect.Parameter.empty:
+            kwargs['default'] = parameter.default
+            kwargs['show_default'] = True
+
+    for annotation_type in [PriorityAnnotation, StandardAnnotation]:
+        for annotation in parameter.annotations:
+            if isinstance(annotation, annotation_type):
+                name = parameter.name
+                type_hint = parameter.type_hint
+                default = parameter.default
+
+                new_args = annotation.args(name, type_hint, default, param_type)
+                args = new_args if new_args else args
+
+                new_kwargs = annotation.kwargs(name, type_hint, default, param_type)
+                kwargs.update(new_kwargs)
+
+    if param_type == ParameterType.ARGUMENT:
+        return click.argument(*args, **kwargs)(obj)
+    else:
+        return click.option(*args, **kwargs)(obj)
 
 
 def _create_click_sub_group(parent: click.Group, app: ApplicationGroup) -> None:
@@ -96,7 +112,7 @@ def _create_click_sub_group(parent: click.Group, app: ApplicationGroup) -> None:
         ctx.obj = app.process(**kwargs)
 
     # Adds @click.option(...) and/or @click.argument(...)
-    for parameter in app.process_params:
+    for parameter in reversed(app.process_params):
         sub_group = _add_parameters(sub_group, parameter)
 
     # Adds @parent.group(...)
@@ -138,7 +154,7 @@ def _create_click_command(
         instance(process)
 
     # Adds @click.option(...) and/or @click.argument(...)
-    for parameter in parameters:
+    for parameter in reversed(parameters):
         command = _add_parameters(command, parameter)
 
     # Adds @parent.command(...)
@@ -147,17 +163,3 @@ def _create_click_command(
         short_help=get_comping_short_help(action),
         help=get_comping_long_help(action),
     )(command)
-
-
-def _get_click_type(parameter: ActionProcressParameter) -> Any:
-    type_hint = parameter.type_hint
-    if type_hint == str:
-        return click.STRING
-    elif type_hint == int:
-        return click.INT
-    elif type_hint == float:
-        return click.FLOAT
-    elif type_hint == bool:
-        return click.BOOL
-    else:
-        return click.STRING
