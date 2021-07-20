@@ -68,7 +68,9 @@ def get_comping_long_help(obj: Any) -> str:
         pass
 
     try:
-        return obj.__doc__
+        text = obj.__doc__
+        if text is not None:
+            return text
     except AttributeError:
         pass
 
