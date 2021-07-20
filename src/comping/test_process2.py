@@ -28,7 +28,7 @@ class Greet:
     def __init__(
         self,
         phrase: str,
-        directory: Annotated[pathlib.Path, Name("DIR"), Directory(exists=True)] = None,
+        directory: Annotated[pathlib.Path, Name("DIR"), Directory(exists=True)],
         punctuation: str = "!"
     ) -> None:
         self.phrase = phrase
